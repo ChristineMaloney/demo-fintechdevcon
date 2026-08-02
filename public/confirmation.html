@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Order confirmed — Northwind Goods</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🛍️</text></svg>"
+    />
+  </head>
+  <body data-page="confirmation">
+    <header class="site">
+      <div class="inner">
+        <a class="brand" href="/">NORTHWIND <span>goods</span></a>
+        <a class="cart-link" href="/cart" data-cart-link>Cart (0)</a>
+      </div>
+    </header>
+
+    <main style="max-width: 620px">
+      <div class="panel">
+        <div class="confirm-head">
+          <div class="check">✓</div>
+          <h1>Order placed</h1>
+          <p class="sub" style="margin: 0.35rem 0 0" data-order-sub>
+            Loading your order…
+          </p>
+        </div>
+
+        <table class="details" data-order-details></table>
+
+        <!--
+          INTEGRATION SEAM — server-side payment verification.
+          Once a provider is integrated, this page calls
+          GET /api/payment-status/:orderNumber and renders the confirmed
+          transaction. Never treat a browser-reported success as proof on
+          its own — the server has to confirm it.
+        -->
+        <div data-verification style="margin-top: 1.25rem"></div>
+
+        <a class="btn block" href="/" style="margin-top: 1.5rem"
+          >Back to the shop</a
+        >
+      </div>
+    </main>
+
+    <footer class="site">
+      Demo application — no real orders are fulfilled and no payment is taken.
+    </footer>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,44 @@
+[
+  {
+    "sku": "AUR-1001",
+    "name": "Aurora Wireless Headphones",
+    "tagline": "Active noise cancelling, 40-hour battery",
+    "priceCents": 24999,
+    "art": "🎧"
+  },
+  {
+    "sku": "TND-2002",
+    "name": "Tundra 30L Backpack",
+    "tagline": "Recycled ripstop shell, laptop sleeve to 16\"",
+    "priceCents": 12850,
+    "art": "🎒"
+  },
+  {
+    "sku": "MER-3003",
+    "name": "Meridian Pour-Over Kettle",
+    "tagline": "Gooseneck spout, 1L brushed steel",
+    "priceCents": 8900,
+    "art": "🫖"
+  },
+  {
+    "sku": "GLC-4004",
+    "name": "Glacier Insulated Bottle",
+    "tagline": "Holds temperature 24h cold / 12h hot",
+    "priceCents": 3400,
+    "art": "🧊"
+  },
+  {
+    "sku": "SLT-5005",
+    "name": "Slate Mechanical Keyboard",
+    "tagline": "Hot-swappable switches, aluminium case",
+    "priceCents": 17900,
+    "art": "⌨️"
+  },
+  {
+    "sku": "BEA-6006",
+    "name": "Beacon Desk Lamp",
+    "tagline": "Adjustable colour temperature, USB-C passthrough",
+    "priceCents": 6250,
+    "art": "💡"
+  }
+]

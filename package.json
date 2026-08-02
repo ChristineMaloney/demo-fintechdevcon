@@ -1,0 +1,14 @@
+{
+  "name": "demo-fintechdevcon",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Northwind Goods — a sample storefront with no payment provider integrated.",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  }
+}

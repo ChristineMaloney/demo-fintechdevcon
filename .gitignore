@@ -1,0 +1,13 @@
+node_modules/
+
+# Secrets — never commit.
+.env
+.env.*
+!.env.example
+
+# Client certificate material
+*.pem
+*.key
+*.p12
+*.pfx
+certs/

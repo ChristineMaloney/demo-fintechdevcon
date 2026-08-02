@@ -1,0 +1,451 @@
+:root {
+  --navy: #0a2540;
+  --navy-light: #163a5f;
+  --ink: #1a1a1a;
+  --muted: #6b7280;
+  --line: #e5e7eb;
+  --bg: #f5f6f8;
+  --card: #ffffff;
+  --accent: #1a7a8a;
+  --good: #16a34a;
+  --warn: #b45309;
+  --warn-bg: #fffbeb;
+  --warn-line: #fde68a;
+  --radius: 12px;
+  --shadow: 0 1px 3px rgba(10, 37, 64, 0.08), 0 8px 24px rgba(10, 37, 64, 0.06);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Header ──────────────────────────────────────────────────────── */
+header.site {
+  background: var(--navy);
+  color: #fff;
+}
+
+header.site .inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+header.site a.brand {
+  color: #fff;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: 0.06em;
+}
+
+header.site a.brand span {
+  opacity: 0.6;
+  font-weight: 400;
+  letter-spacing: 0;
+  margin-left: 0.5rem;
+  font-size: 0.85rem;
+}
+
+header.site a.cart-link {
+  color: #fff;
+  text-decoration: none;
+  font-size: 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+  padding: 0.35rem 0.9rem;
+  white-space: nowrap;
+}
+
+header.site a.cart-link:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* ── Layout ──────────────────────────────────────────────────────── */
+main {
+  max-width: 1080px;
+  margin: 2rem auto 4rem;
+  padding: 0 1.25rem;
+}
+
+h1.page {
+  font-size: 1.6rem;
+  margin-bottom: 0.25rem;
+}
+
+p.sub {
+  color: var(--muted);
+  font-size: 0.925rem;
+  margin-bottom: 1.75rem;
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 820px) {
+  .columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+.panel {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.5rem;
+}
+
+.panel h2 {
+  font-size: 1.05rem;
+  margin-bottom: 1rem;
+}
+
+/* ── Product grid ────────────────────────────────────────────────── */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1.25rem;
+}
+
+.product {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.product .art {
+  font-size: 3rem;
+  line-height: 1;
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 1.5rem 0;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.product h3 {
+  font-size: 1rem;
+  margin-bottom: 0.15rem;
+}
+
+.product .tagline {
+  color: var(--muted);
+  font-size: 0.85rem;
+  flex: 1;
+  margin-bottom: 0.9rem;
+}
+
+.product .row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.price {
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: var(--navy);
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────── */
+button,
+a.btn {
+  font: inherit;
+  border: none;
+  border-radius: 8px;
+  padding: 0.6rem 1.1rem;
+  cursor: pointer;
+  background: var(--navy);
+  color: #fff;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+
+button:hover,
+a.btn:hover {
+  background: var(--navy-light);
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+button.ghost {
+  background: transparent;
+  color: var(--navy);
+  border: 1px solid var(--line);
+}
+
+button.ghost:hover {
+  background: var(--bg);
+}
+
+a.btn.block,
+button.block {
+  display: block;
+  width: 100%;
+  padding: 0.85rem;
+  font-size: 1rem;
+}
+
+button.link {
+  background: none;
+  color: var(--muted);
+  padding: 0;
+  font-size: 0.85rem;
+  text-decoration: underline;
+}
+
+button.link:hover {
+  background: none;
+  color: var(--ink);
+}
+
+/* ── Cart / line items ───────────────────────────────────────────── */
+.line {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.line:last-of-type {
+  border-bottom: none;
+}
+
+.line .art {
+  font-size: 1.75rem;
+  background: var(--bg);
+  border-radius: 8px;
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.line .info {
+  flex: 1;
+  min-width: 0;
+}
+
+.line .info .name {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.line .info .unit {
+  color: var(--muted);
+  font-size: 0.825rem;
+}
+
+.qty {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.qty button {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.qty button:hover {
+  background: var(--line);
+}
+
+.qty .count {
+  min-width: 2ch;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.line .line-total {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  min-width: 5.5rem;
+  text-align: right;
+}
+
+/* ── Totals ──────────────────────────────────────────────────────── */
+.totals {
+  margin-top: 1rem;
+}
+
+.totals .row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  font-size: 0.925rem;
+  color: var(--muted);
+}
+
+.totals .row span:last-child {
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.totals .row.grand {
+  border-top: 1px solid var(--line);
+  margin-top: 0.5rem;
+  padding-top: 0.85rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.cents-note {
+  margin-top: 0.85rem;
+  font-size: 0.775rem;
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* ── Empty / status states ───────────────────────────────────────── */
+.empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--muted);
+}
+
+.empty p {
+  margin-bottom: 1.25rem;
+}
+
+.notice {
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-line);
+  border-radius: 10px;
+  padding: 1.1rem 1.25rem;
+  font-size: 0.9rem;
+  color: var(--warn);
+}
+
+.notice strong {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: #92400e;
+}
+
+.notice code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: rgba(146, 64, 14, 0.09);
+  border-radius: 4px;
+  padding: 0.05rem 0.35rem;
+  font-size: 0.85em;
+}
+
+.notice ol {
+  margin: 0.6rem 0 0 1.1rem;
+}
+
+.notice li {
+  margin-bottom: 0.2rem;
+}
+
+/* ── Payment form mount point ────────────────────────────────────── */
+#payment-container {
+  min-height: 200px;
+}
+
+/* ── Confirmation ────────────────────────────────────────────────── */
+.confirm-head {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.confirm-head .check {
+  width: 52px;
+  height: 52px;
+  border-radius: 999px;
+  background: var(--good);
+  color: #fff;
+  font-size: 1.6rem;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 0.75rem;
+}
+
+.confirm-head h1 {
+  font-size: 1.35rem;
+}
+
+table.details {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+table.details th,
+table.details td {
+  padding: 0.55rem 0;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+
+table.details th {
+  color: var(--muted);
+  font-weight: 500;
+  width: 45%;
+}
+
+table.details td {
+  font-variant-numeric: tabular-nums;
+}
+
+table.details tr:last-child th,
+table.details tr:last-child td {
+  border-bottom: none;
+}
+
+.badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+  background: var(--warn-bg);
+  color: var(--warn);
+  border: 1px solid var(--warn-line);
+}
+
+footer.site {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 3rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-align: center;
+}
