@@ -1,10 +1,14 @@
-# Northwind Goods
+# Front Range Supply Co.
 
-A small, working e-commerce storefront. Browse products, build a cart, reach
-checkout — and find that **no payment provider is integrated**.
+A small, working e-commerce storefront selling high-country gear out of Denver.
+Browse products, build a cart, reach checkout — and find that **no payment
+provider is integrated**.
 
 That gap is deliberate. This is the "before" state: a realistic merchant
 application waiting for a payments integration to be added.
+
+Front Range Supply Co. is a fictional store. This is the Colorado-themed branch;
+`before-integration` carries the same application in neutral branding.
 
 ```bash
 node server.js
@@ -20,10 +24,14 @@ library alone.
 | --- | --- |
 | Product catalog | Works — 6 products from `data/products.json` |
 | Cart (add, quantity, remove) | Works — cookie session, server-side |
-| Totals: subtotal, 8.25% tax, shipping | Works — free over $75 |
+| Totals: subtotal, 8.81% tax, shipping | Works — free over $75 |
 | Order records + confirmation page | Works |
 | **Taking payment** | **Not implemented** |
 | **Verifying payment** | **Not implemented** |
+
+The tax rate is Denver's combined state, city, RTD and CD rate. It's a flat
+constant for illustration — a real store would resolve tax per destination
+address.
 
 Checkout renders an honest "no payment provider integrated" notice, plus a
 clearly-labelled *Place order without payment (demo only)* button so the
@@ -65,6 +73,13 @@ The parts that are annoying to retrofit are handled:
   later are available in `process.env` with no dependency and no source edits
   when switching environments.
 - **Certificates and `.env` are gitignored** already.
+
+## Theming
+
+Colorado flag palette — the blue field, the red C, its gold disc — over warm
+sandstone neutrals. The ridgeline along the bottom of the header is an inline
+SVG data URI in [public/style.css](public/style.css); there are no image files
+and no extra requests.
 
 ## Layout
 

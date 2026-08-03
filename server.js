@@ -1,4 +1,4 @@
-// Northwind Goods — sample storefront.
+// Front Range Supply Co. — sample storefront.
 //
 // Zero npm dependencies: Node 18+ standard library only. `node server.js`
 // and you have a working shop. No payment provider is integrated — see
@@ -276,7 +276,7 @@ await loadCatalog(ROOT);
 
 const PORT = Number(process.env.PORT) || 3000;
 server.listen(PORT, () => {
-  console.log(`  Northwind Goods  →  http://localhost:${PORT}`);
+  console.log(`  Front Range Supply Co.  →  http://localhost:${PORT}`);
   console.log(`  ${getCatalog().length} products loaded`);
   console.log('  Checkout: not integrated (stub returns 501)');
 });

@@ -1,43 +1,43 @@
 [
   {
-    "sku": "AUR-1001",
-    "name": "Aurora Wireless Headphones",
-    "tagline": "Active noise cancelling, 40-hour battery",
+    "sku": "RRX-1001",
+    "name": "Red Rocks Wireless Headphones",
+    "tagline": "Active noise cancelling for the amphitheatre and the office",
     "priceCents": 24999,
     "art": "🎧"
   },
   {
-    "sku": "TND-2002",
-    "name": "Tundra 30L Backpack",
-    "tagline": "Recycled ripstop shell, laptop sleeve to 16\"",
+    "sku": "FTN-2002",
+    "name": "Fourteener 30L Pack",
+    "tagline": "Summit-day capacity, recycled ripstop, ice axe loop",
     "priceCents": 12850,
     "art": "🎒"
   },
   {
-    "sku": "MER-3003",
-    "name": "Meridian Pour-Over Kettle",
-    "tagline": "Gooseneck spout, 1L brushed steel",
+    "sku": "DIV-3003",
+    "name": "Continental Divide Pour-Over Kettle",
+    "tagline": "Gooseneck spout, 1L brushed steel, altitude-friendly",
     "priceCents": 8900,
     "art": "🫖"
   },
   {
-    "sku": "GLC-4004",
-    "name": "Glacier Insulated Bottle",
-    "tagline": "Holds temperature 24h cold / 12h hot",
+    "sku": "MBL-4004",
+    "name": "Maroon Bells Insulated Bottle",
+    "tagline": "24h cold on the trail, 12h hot at the trailhead",
     "priceCents": 3400,
     "art": "🧊"
   },
   {
-    "sku": "SLT-5005",
-    "name": "Slate Mechanical Keyboard",
-    "tagline": "Hot-swappable switches, aluminium case",
+    "sku": "MSA-5005",
+    "name": "Mesa Verde Mechanical Keyboard",
+    "tagline": "Hot-swappable switches, sandstone-anodised aluminium",
     "priceCents": 17900,
     "art": "⌨️"
   },
   {
-    "sku": "BEA-6006",
-    "name": "Beacon Desk Lamp",
-    "tagline": "Adjustable colour temperature, USB-C passthrough",
+    "sku": "ALP-6006",
+    "name": "Alpenglow Desk Lamp",
+    "tagline": "Warm-to-cool colour temperature, USB-C passthrough",
     "priceCents": 6250,
     "art": "💡"
   }

@@ -1,4 +1,4 @@
-// Northwind Goods frontend. One module for all four pages; each page is
+// Front Range Supply Co. frontend. One module for all four pages; each page is
 // identified by <body data-page="...">. No framework, no build step.
 
 const money = (cents) =>

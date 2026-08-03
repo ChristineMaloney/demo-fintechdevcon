@@ -1,18 +1,21 @@
 :root {
-  --navy: #0a2540;
-  --navy-light: #163a5f;
-  --ink: #1a1a1a;
-  --muted: #6b7280;
-  --line: #e5e7eb;
-  --bg: #f5f6f8;
+  /* Colorado flag palette — the blue field, the red C, and its gold
+     disc. Neutrals carry a warm sandstone tint instead of a cool grey. */
+  --navy: #002868;
+  --navy-light: #0b3f8f;
+  --ink: #1c1a17;
+  --muted: #6f6a63;
+  --line: #e6e1d8;
+  --bg: #f7f4ee;
   --card: #ffffff;
-  --accent: #1a7a8a;
+  --accent: #bf0a30;
+  --gold: #ffc72c;
   --good: #16a34a;
   --warn: #b45309;
   --warn-bg: #fffbeb;
   --warn-line: #fde68a;
   --radius: 12px;
-  --shadow: 0 1px 3px rgba(10, 37, 64, 0.08), 0 8px 24px rgba(10, 37, 64, 0.06);
+  --shadow: 0 1px 3px rgba(0, 40, 104, 0.08), 0 8px 24px rgba(0, 40, 104, 0.07);
 }
 
 *,
@@ -32,9 +35,25 @@ body {
 }
 
 /* ── Header ──────────────────────────────────────────────────────── */
+/* A ridgeline is cut out of the bottom edge in the page background
+   colour. Inline SVG data URI — no image files, no extra requests. */
 header.site {
   background: var(--navy);
   color: #fff;
+  position: relative;
+  padding-bottom: 26px;
+}
+
+header.site::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 28px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 60' preserveAspectRatio='none'%3E%3Cpath d='M0,60 L110,20 L190,44 L300,4 L410,46 L520,22 L620,50 L740,16 L850,46 L960,12 L1080,42 L1200,20 L1200,60 Z' fill='%23f7f4ee'/%3E%3C/svg%3E");
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
 }
 
 header.site .inner {
@@ -56,7 +75,7 @@ header.site a.brand {
 }
 
 header.site a.brand span {
-  opacity: 0.6;
+  color: var(--gold);
   font-weight: 400;
   letter-spacing: 0;
   margin-left: 0.5rem;
@@ -139,7 +158,8 @@ p.sub {
 .product .art {
   font-size: 3rem;
   line-height: 1;
-  background: var(--bg);
+  /* High-country sky fading to sandstone. */
+  background: linear-gradient(170deg, #eaf1fb 0%, #f7f4ee 70%, #f0e7d8 100%);
   border-radius: 10px;
   padding: 1.5rem 0;
   text-align: center;
