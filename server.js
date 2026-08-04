@@ -28,6 +28,7 @@ import {
   fetchNotifications,
   summarizeNotifications,
   describeCheckoutTarget,
+  dropInUiUrl,
 } from './lib/jpmCheckout.js';
 
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
@@ -222,6 +223,13 @@ async function handleApi(req, res, url) {
   //
   // Auth lives in lib/jpmAuth.js, the Checkout calls in lib/jpmCheckout.js.
   // The two endpoints below are the only places the storefront touches JPM.
+
+  // Which Drop-in bundle the browser should load. Served rather than
+  // hardcoded in the page so switching environments stays a .env change.
+  if (pathname === '/api/checkout-config' && method === 'GET') {
+    const { apiHost, mock } = describeCheckoutTarget();
+    return json(res, 200, { dropInUiUrl: dropInUiUrl(), apiHost, mock });
+  }
 
   // Snapshot the cart into an order, then trade that order for a
   // checkoutSessionToken. The order is created *before* payment because

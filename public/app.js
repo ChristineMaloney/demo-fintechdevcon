@@ -232,12 +232,26 @@ async function initCheckout() {
 }
 
 /**
- * The Drop-in bundle loads as a module script, so `window.DropInUI` may
- * not exist yet when the shopper submits the form.
+ * Loads the Drop-in bundle from the URL the server reports, then waits for
+ * it to register the global `DropInUI` class. The bundle is injected here
+ * rather than hardcoded in the page because JPM ships one per environment.
  */
-function whenDropInReady(timeoutMs = 10000) {
+async function whenDropInReady(timeoutMs = 10000) {
+  if (window.DropInUI) return window.DropInUI;
+
+  const { body: config } = await api('/api/checkout-config');
+  if (!config.dropInUiUrl) {
+    throw new Error('The server did not report a Drop-in UI bundle URL.');
+  }
+
+  if (!document.querySelector(`script[src="${config.dropInUiUrl}"]`)) {
+    const script = document.createElement('script');
+    script.type = 'module';
+    script.src = config.dropInUiUrl;
+    document.head.append(script);
+  }
+
   return new Promise((resolveReady, reject) => {
-    if (window.DropInUI) return resolveReady(window.DropInUI);
     const startedAt = Date.now();
     const tick = setInterval(() => {
       if (window.DropInUI) {
@@ -245,7 +259,9 @@ function whenDropInReady(timeoutMs = 10000) {
         resolveReady(window.DropInUI);
       } else if (Date.now() - startedAt > timeoutMs) {
         clearInterval(tick);
-        reject(new Error('The J.P. Morgan Drop-in UI script did not load.'));
+        reject(
+          new Error(`The Drop-in UI bundle at ${config.dropInUiUrl} did not load.`)
+        );
       }
     }, 50);
   });

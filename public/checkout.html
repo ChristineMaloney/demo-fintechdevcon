@@ -11,16 +11,10 @@
     />
 
     <!--
-      J.P. Morgan Drop-in UI bundle. Registers a global `DropInUI` class —
-      no npm package involved. `type="module"` is required.
-
-      CAT / pre-prod (used against the mock environment too):
+      The J.P. Morgan Drop-in UI bundle is loaded at runtime from the URL
+      the server reports at /api/checkout-config, not hardcoded here — the
+      bundle is per-environment and each one talks to its own backend.
     -->
-    <script
-      type="module"
-      src="https://checkout-cat.merchant.jpmorgan.com/drop-in-ui.mjs"
-    ></script>
-    <!-- Production: https://checkout.merchant.jpmorgan.com/drop-in-ui.mjs -->
   </head>
   <body data-page="checkout">
     <header class="site">
