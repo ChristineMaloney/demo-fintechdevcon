@@ -30,6 +30,7 @@ import {
   describeCheckoutTarget,
   dropInUiUrl,
   frontendServiceOrigin,
+  resolveEndpoints,
 } from './lib/jpmCheckout.js';
 
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
@@ -348,15 +349,17 @@ const PORT = Number(process.env.PORT) || 3000;
 server.listen(PORT, () => {
   console.log(`  Northwind Goods  →  http://localhost:${PORT}`);
   console.log(`  ${getCatalog().length} products loaded`);
-  const { apiHost, authHost, mock } = describeCheckoutTarget();
+  const { mock } = describeCheckoutTarget();
   if (!mock && !process.env.JPM_MERCHANT_ID) {
     console.log('  Checkout: JPM_MERCHANT_ID not set — see .env.example');
   } else {
+    const endpoints = resolveEndpoints();
     console.log('  Checkout: J.P. Morgan Drop-in UI');
-    console.log(`    api   → ${apiHost}`);
-    console.log(`    auth  → ${authHost ?? 'none (mock takes no credentials)'}`);
+    for (const [name, url] of Object.entries(endpoints)) {
+      console.log(`    ${name.padEnd(16)} ${url}`);
+    }
     if (mock && !process.env.JPM_MERCHANT_ID) {
-      console.log('    note  → using JPM sample merchantId (mock only)');
+      console.log('    note             using JPM sample merchantId (mock only)');
     }
   }
 });
