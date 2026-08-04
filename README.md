@@ -1,18 +1,22 @@
 # Switchback Systems
 
 A small hardware storefront in Denver, Colorado. Browse the catalog, build a
-cart, reach checkout — and find that **no payment provider is integrated**.
-
-That gap is deliberate. This is the "before" state: a realistic merchant
-application waiting for the J.P. Morgan **Online Payments API** to be added.
+cart, check out, and pay by card through the J.P. Morgan **Online Payments
+API**.
 
 ```bash
+npm install
 node server.js
 ```
 
-Then open <http://localhost:3000>. There is no build step and **no npm
-install** — the app has zero dependencies and runs on the Node 18+ standard
-library alone.
+Then open <http://localhost:3000>. There is no build step. The one dependency
+is `jsonwebtoken`, used to sign the JPM auth assertion; everything else is the
+Node 18+ standard library.
+
+Card payments need credentials. Copy `.env.example` to `.env` and fill in the
+`JPM_*` values — until they are all present the storefront reports itself as
+unintegrated and checkout falls back to the demo bypass, exactly as it did
+before the integration. `.env` is gitignored; never commit it.
 
 ## What works today
 
@@ -23,49 +27,54 @@ library alone.
 | Totals: subtotal, 8.81% tax, shipping | Works — free over $75 |
 | Billing details collected at checkout | Works |
 | Order records + confirmation page | Works |
-| **Charging a card** | **Not implemented** |
-| **Verifying payment** | **Not implemented** |
-| **Refunding** | **Not implemented** |
+| Charging a card | Works — JPM Online Payments, auth + capture in one step |
+| Verifying payment | Works — read back from JPM, server-side |
+| Refunding | Works — linked refund against the stored transaction |
 
-Checkout renders the card form with every field disabled, plus a clearly
-labelled *Place order without payment (demo only)* button so the storefront
-still has a complete happy path to show. No card is collected and no money
-moves.
+## The integration
 
-## The integration seam
+Online Payments is a direct, server-to-server API — the storefront owns the
+card form and posts to `/payments` rather than mounting a hosted widget. The
+card travels from the browser to this server to JPM, and nowhere else.
 
-Online Payments is a direct, server-to-server API — the merchant owns the card
-form and posts to `/payments`, rather than mounting a hosted widget. So the
-seam here is a card form plus three endpoints.
+[lib/jpmAuth.js](lib/jpmAuth.js) signs an RS256 JWT assertion and exchanges it
+for an access token, caching that token until just before JPM's stated expiry.
+[lib/jpmPayments.js](lib/jpmPayments.js) is the API client and calls
+`getAccessToken()` per request — cheap on a warm cache, correct on a cold one.
 
 1. **`POST /api/payments`** — [server.js](server.js)
-   Returns `501`. Should authorize and capture the card against
-   `{JPM_PAYMENTS_API_URL}/payments` and record the returned `transactionId`.
+   Authorizes and captures in one step (`captureMethod: NOW`), then records the
+   returned `transactionId` against the order. Paying the same order twice
+   returns the original transaction rather than charging again.
 
 2. **`GET /api/payment-status/:orderNumber`** — [server.js](server.js)
-   Returns `501`. Should confirm server-side that the transaction actually
-   settled, rather than trusting what the browser reports.
+   Reads the transaction back from JPM. The browser's word that a payment
+   settled is not evidence; this is.
 
 3. **`POST /api/orders/:orderNumber/refund`** — [server.js](server.js)
-   Returns `501`. The lifecycle does not end at capture, and a storefront that
-   can only take money is only half integrated.
+   Linked refund against the stored transaction id. Omit `amountCents` in the
+   body for a full refund. The lifecycle does not end at capture.
 
-Plus one flag and one form:
+4. **`GET /api/payment-capabilities`** — [server.js](server.js)
+   Reports `integrated: true` only when the environment actually carries enough
+   to reach JPM, so a half-filled `.env` presents as unintegrated rather than
+   failing at the Pay button.
 
-- **`GET /api/payment-capabilities`** returns `{ integrated: false }`. This one
-  is not a stub — it reports the truth. Flipping it to `true` is what wakes the
-  client up.
-- **The card fieldset** in [public/checkout.html](public/checkout.html) is
-  present and disabled, ready to be enabled.
+[public/app.js](public/app.js) branches on that flag: it enables the card
+fields and the Pay button, drops the "not integrated" notice, and removes the
+demo bypass. No client change was needed.
 
-[public/app.js](public/app.js) already calls all of it. The branch at
-`if (caps.integrated)` enables the card fields, enables the Pay button, drops
-the "not integrated" notice, and removes the demo bypass — so wiring up the
-server is most of the work.
+### Money and failure
 
-### Groundwork already done
+- An order moves to `paid` only on a positive capture. A decline, an ambiguous
+  status, or a JPM error all leave it `unpaid` with a null `transactionId`.
+- Processor error detail is logged server-side, never returned to the browser.
+- A one-time purchase that does not store the card is `CARDHOLDER` /
+  `NOT_STORED` / `isAmountFinal: true` — JPM message type CGEN.
 
-The parts that are annoying to retrofit are handled:
+### Groundwork this built on
+
+The parts that are annoying to retrofit were already handled:
 
 - **Amounts are integer cents everywhere.** [lib/store.js](lib/store.js) never
   holds a float dollar value, so `order.totalCents` can go straight to an API
@@ -81,6 +90,8 @@ The parts that are annoying to retrofit are handled:
 - **Orders are created before payment**, as `unpaid` with a null
   `transactionId` — so there is a record to attach a transaction to, and a
   status to move forward.
+- **`countryCode` is sent as `USA`**, the three-letter form the API expects,
+  rather than the `US` the order record stores.
 - **`.env` loads at boot** via a small built-in parser, so credentials added
   later are available in `process.env` with no dependency and no source edit
   when switching environments.
@@ -89,13 +100,15 @@ The parts that are annoying to retrofit are handled:
 ## Layout
 
 ```
-server.js              HTTP server, static files, JSON API, integration stubs
+server.js              HTTP server, static files, JSON API, payment endpoints
 lib/store.js           Catalog, carts, order records — all money in cents
+lib/jpmAuth.js         JPM OAuth — signed JWT, token exchange, token cache
+lib/jpmPayments.js     JPM Online Payments — authorize/capture, verify, refund
 data/products.json     Product catalog
 public/
   index.html           Catalog
   cart.html            Cart
-  checkout.html        Checkout — billing form and the disabled card fieldset
+  checkout.html        Checkout — billing form and card fieldset
   confirmation.html    Order confirmation
   app.js               All page logic
   style.css            Styles
