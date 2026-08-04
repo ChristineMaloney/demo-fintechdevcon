@@ -29,7 +29,7 @@ import {
   summarizeNotifications,
   describeCheckoutTarget,
   dropInUiUrl,
-  frontendServiceOrigin,
+  frontendServiceBase,
   resolveEndpoints,
 } from './lib/jpmCheckout.js';
 
@@ -234,7 +234,7 @@ async function handleApi(req, res, url) {
       dropInUiUrl: dropInUiUrl(),
       apiHost,
       mock,
-      frontendServiceOrigin: frontendServiceOrigin(),
+      frontendServiceBase: frontendServiceBase(),
     });
   }
 

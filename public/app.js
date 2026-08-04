@@ -236,18 +236,28 @@ async function initCheckout() {
 // this server created the session against the mock — and the mock is not
 // the one holding that session. Its frontend-service calls are recognisable
 // by their path (`/checkout.fe.v1.<Service>/<Method>`), so they can be
-// redirected by origin without caring which host the bundle was built for.
-const FRONTEND_SERVICE_PATH = /^\/checkout\.fe\./;
+// redirected without caring which host the bundle was built for.
+//
+// The base may carry a path prefix: the CAT backend serves these at the
+// root, the mock serves them under the same /v1 as its REST endpoints, so
+// the prefix has to be prepended rather than the host merely swapped.
+const FRONTEND_SERVICE_PATH = /\/checkout\.fe\./;
 
-function redirectFrontendService(origin) {
+function redirectFrontendService(base) {
+  const target = new URL(base);
+  const prefix = target.pathname.replace(/\/+$/, '');
+
   const retarget = (rawUrl) => {
     try {
       const url = new URL(rawUrl, location.href);
-      if (!FRONTEND_SERVICE_PATH.test(url.pathname)) return rawUrl;
-      const target = new URL(origin);
-      url.protocol = target.protocol;
-      url.host = target.host;
-      return url.toString();
+      const match = FRONTEND_SERVICE_PATH.exec(url.pathname);
+      if (!match) return rawUrl;
+
+      // Strip whatever prefix the bundle used, then apply ours, so the
+      // rewrite is idempotent and never stacks /v1/v1.
+      const servicePath = url.pathname.slice(match.index);
+      const moved = new URL(`${prefix}${servicePath}${url.search}`, target.origin);
+      return moved.toString();
     } catch {
       return rawUrl;
     }
@@ -286,8 +296,8 @@ async function whenDropInReady(timeoutMs = 10000) {
   }
 
   // Must be installed before the bundle loads and issues its first call.
-  if (config.frontendServiceOrigin) {
-    redirectFrontendService(config.frontendServiceOrigin);
+  if (config.frontendServiceBase) {
+    redirectFrontendService(config.frontendServiceBase);
   }
 
   if (!document.querySelector(`script[src="${config.dropInUiUrl}"]`)) {
