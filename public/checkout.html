@@ -9,6 +9,18 @@
       rel="icon"
       href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🛍️</text></svg>"
     />
+
+    <!--
+      J.P. Morgan Drop-in UI bundle. Registers a global `DropInUI` class —
+      no npm package involved. `type="module"` is required.
+
+      CAT / pre-prod (used against the mock environment too):
+    -->
+    <script
+      type="module"
+      src="https://checkout-cat.merchant.jpmorgan.com/drop-in-ui.mjs"
+    ></script>
+    <!-- Production: https://checkout.merchant.jpmorgan.com/drop-in-ui.mjs -->
   </head>
   <body data-page="checkout">
     <header class="site">
@@ -28,15 +40,25 @@
           <h2>Payment</h2>
 
           <!--
-            INTEGRATION SEAM — the payment form belongs here.
-
-            Nothing renders into this container today. A payment
-            provider's embedded UI would mount into it, or it would hold
-            a hand-rolled card form posting to our own endpoint.
+            Billing details. JPM's checkout intent needs a consumer email
+            and billing address, and the address is what the issuer's AVS
+            check scores against.
           -->
-          <div id="payment-container">
-            <div class="empty">Checking payment configuration…</div>
-          </div>
+          <form id="billing-form" novalidate>
+            <label>Full name<input name="recipientFullName" autocomplete="name" required /></label>
+            <label>Email<input name="email" type="email" autocomplete="email" required /></label>
+            <label>Address<input name="line1" autocomplete="address-line1" required /></label>
+            <div class="field-row">
+              <label>City<input name="city" autocomplete="address-level2" required /></label>
+              <label>State<input name="state" autocomplete="address-level1" maxlength="2" required /></label>
+              <label>ZIP<input name="postalCode" autocomplete="postal-code" required /></label>
+            </div>
+            <input type="hidden" name="country" value="US" />
+            <button type="submit" class="block">Continue to payment</button>
+          </form>
+
+          <!-- The JPM Drop-in UI mounts here once we have a session token. -->
+          <div id="payment-container"></div>
         </div>
 
         <!-- ── Order summary ──────────────────────────────────────── -->

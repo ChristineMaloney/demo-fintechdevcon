@@ -21,7 +21,13 @@ import {
   priceCart,
   createOrder,
   getOrder,
+  markOrderPaid,
 } from './lib/store.js';
+import {
+  createCheckoutIntent,
+  fetchNotifications,
+  summarizeNotifications,
+} from './lib/jpmCheckout.js';
 
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
 const PUBLIC_DIR = join(ROOT, 'public');
@@ -210,44 +216,93 @@ async function handleApi(req, res, url) {
   }
 
   // ══════════════════════════════════════════════════════════════════
-  // INTEGRATION SEAM — no payment provider is wired up
+  // J.P. Morgan Payments — Checkout (Drop-in UI)
   // ══════════════════════════════════════════════════════════════════
   //
-  // Both endpoints below are deliberately unimplemented. Adding a
-  // payment provider means filling in exactly these two. Everything
-  // they need already exists above:
-  //
-  //   • order.totalCents     integer cents (smallest currency unit)
-  //   • order.orderNumber    short merchant order reference, ≤22 chars
-  //   • order.currencyCode   "USD"
-  //
-  // What still has to be added:
-  //   • authentication against the provider
-  //   • a call that turns a cart total into a payment session token
-  //   • a server-side check that confirms the payment actually settled
-  // ══════════════════════════════════════════════════════════════════
+  // Auth lives in lib/jpmAuth.js, the Checkout calls in lib/jpmCheckout.js.
+  // The two endpoints below are the only places the storefront touches JPM.
 
+  // Snapshot the cart into an order, then trade that order for a
+  // checkoutSessionToken. The order is created *before* payment because
+  // its orderNumber (≤22 chars) is what JPM wants as merchantOrderNumber,
+  // and because the confirmation page needs a record either way.
   if (pathname === '/api/create-checkout-session' && method === 'POST') {
-    return json(res, 501, {
-      error: 'not_integrated',
-      message:
-        'No payment provider is integrated, so there is no checkout session ' +
-        'to create. This endpoint should return a session token the browser ' +
-        'can use to render a payment form.',
-      expectedResponse: { checkoutSessionToken: '<token>', orderNumber: '<=22 chars' },
-    });
+    const { consumer } = await readBody(req);
+
+    if (!consumer?.email || !consumer?.billingAddress?.line1) {
+      return json(res, 400, {
+        error: 'missing_consumer',
+        message: 'Billing email and address are required to start a checkout.',
+      });
+    }
+
+    const order = createOrder(sid);
+    if (!order) return json(res, 400, { error: 'Cart is empty' });
+
+    try {
+      const session = await createCheckoutIntent({
+        merchantOrderNumber: order.orderNumber,
+        amountCents: order.totalCents,
+        currencyCode: order.currencyCode,
+        consumer,
+      });
+
+      // Only clear the cart once JPM has accepted the intent — a failed
+      // call leaves the shopper's cart intact so they can retry.
+      clearCart(sid);
+
+      return json(res, 200, {
+        checkoutSessionToken: session.checkoutSessionToken,
+        orderNumber: order.orderNumber,
+        amountCents: order.totalCents,
+        currencyCode: order.currencyCode,
+      });
+    } catch (err) {
+      console.error('JPM checkout intent failed:', err);
+      return json(res, 502, { error: 'checkout_intent_failed', message: err.message });
+    }
   }
 
+  // Server-side proof that the payment settled. The browser's
+  // PaymentSuccess event is a UI hint; this is the record we trust.
   const statusMatch = pathname.match(/^\/api\/payment-status\/([\w-]{1,64})$/);
   if (statusMatch && method === 'GET') {
-    return json(res, 501, {
-      error: 'not_integrated',
-      message:
-        'No payment provider is integrated, so payment cannot be verified ' +
-        'server-side. This endpoint should confirm the transaction settled ' +
-        'rather than trusting anything the browser reports.',
-      orderNumber: statusMatch[1],
-    });
+    const orderNumber = statusMatch[1];
+    const order = getOrder(orderNumber);
+    if (!order) return json(res, 404, { error: 'No such order' });
+
+    try {
+      const summary = summarizeNotifications(await fetchNotifications(orderNumber));
+
+      if (!summary.settled) {
+        // Notifications are asynchronous — nothing yet means "not yet".
+        return json(res, 200, {
+          orderNumber,
+          paymentStatus: order.paymentStatus,
+          settled: false,
+          ...summary,
+        });
+      }
+
+      // Guard against a settled amount that disagrees with what we charged.
+      if (summary.amountCents != null && summary.amountCents !== order.totalCents) {
+        console.error(
+          `Amount mismatch on ${orderNumber}: JPM ${summary.amountCents} vs order ${order.totalCents}`
+        );
+        return json(res, 409, {
+          error: 'amount_mismatch',
+          orderNumber,
+          expectedCents: order.totalCents,
+          settledCents: summary.amountCents,
+        });
+      }
+
+      markOrderPaid(orderNumber, summary);
+      return json(res, 200, { orderNumber, paymentStatus: 'paid', ...summary });
+    } catch (err) {
+      console.error('JPM notifications lookup failed:', err);
+      return json(res, 502, { error: 'verification_failed', message: err.message });
+    }
   }
 
   return json(res, 404, { error: `No route for ${method} ${pathname}` });
@@ -278,5 +333,9 @@ const PORT = Number(process.env.PORT) || 3000;
 server.listen(PORT, () => {
   console.log(`  Northwind Goods  →  http://localhost:${PORT}`);
   console.log(`  ${getCatalog().length} products loaded`);
-  console.log('  Checkout: not integrated (stub returns 501)');
+  console.log(
+    process.env.JPM_MERCHANT_ID
+      ? '  Checkout: J.P. Morgan Drop-in UI'
+      : '  Checkout: JPM env vars missing — see .env.example'
+  );
 });

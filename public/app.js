@@ -156,6 +156,7 @@ async function initCart() {
 // ── Checkout page ───────────────────────────────────────────────────
 async function initCheckout() {
   const mount = document.getElementById('payment-container');
+  const form = document.getElementById('billing-form');
   const linesRoot = document.querySelector('[data-cart-lines-compact]');
   const centsNote = document.querySelector('[data-cents-note]');
 
@@ -163,6 +164,7 @@ async function initCheckout() {
   paintCartLink(cart);
 
   if (cart.items.length === 0) {
+    form.hidden = true;
     mount.innerHTML = '';
     const empty = el('div', 'empty');
     empty.append(el('p', null, 'There is nothing to pay for yet.'));
@@ -190,68 +192,148 @@ async function initCheckout() {
   // Surfacing it here makes the handoff obvious.
   centsNote.textContent = `amount → ${cart.totalCents} (${cart.currencyCode}, minor units)`;
 
-  // ── Ask the server for a checkout session ─────────────────────────
-  // Today this returns 501. Once a payment provider is integrated it
-  // returns a session token, and the branch below is where that
-  // provider's payment form gets mounted.
-  const session = await api('/api/create-checkout-session', {
-    method: 'POST',
-    body: JSON.stringify({ amount: cart.totalCents }),
-  });
+  // ── Billing details → checkout session → Drop-in UI ───────────────
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (!form.reportValidity()) return;
 
-  if (session.ok && session.body.checkoutSessionToken) {
-    mount.innerHTML = '';
-    mount.append(
-      el('div', 'empty', 'Checkout session received — mount the payment form here.')
-    );
+    const submit = form.querySelector('button[type="submit"]');
+    submit.disabled = true;
+    submit.textContent = 'Starting checkout…';
+
+    const f = Object.fromEntries(new FormData(form));
+    const consumer = {
+      email: f.email,
+      billingAddress: {
+        recipientFullName: f.recipientFullName,
+        line1: f.line1,
+        city: f.city,
+        state: f.state.toUpperCase(),
+        country: f.country,
+        postalCode: f.postalCode,
+      },
+    };
+
+    const session = await api('/api/create-checkout-session', {
+      method: 'POST',
+      body: JSON.stringify({ consumer }),
+    });
+
+    if (!session.ok || !session.body.checkoutSessionToken) {
+      submit.disabled = false;
+      submit.textContent = 'Continue to payment';
+      renderCheckoutError(mount, session.body);
+      return;
+    }
+
+    form.hidden = true;
+    await mountDropIn(mount, session.body);
+  });
+}
+
+/**
+ * The Drop-in bundle loads as a module script, so `window.DropInUI` may
+ * not exist yet when the shopper submits the form.
+ */
+function whenDropInReady(timeoutMs = 10000) {
+  return new Promise((resolveReady, reject) => {
+    if (window.DropInUI) return resolveReady(window.DropInUI);
+    const startedAt = Date.now();
+    const tick = setInterval(() => {
+      if (window.DropInUI) {
+        clearInterval(tick);
+        resolveReady(window.DropInUI);
+      } else if (Date.now() - startedAt > timeoutMs) {
+        clearInterval(tick);
+        reject(new Error('The J.P. Morgan Drop-in UI script did not load.'));
+      }
+    }, 50);
+  });
+}
+
+async function mountDropIn(mount, { checkoutSessionToken, orderNumber }) {
+  mount.innerHTML = '';
+  mount.append(el('div', 'empty', 'Loading payment form…'));
+
+  let DropInUI;
+  try {
+    DropInUI = await whenDropInReady();
+  } catch (err) {
+    renderCheckoutError(mount, { message: err.message });
     return;
   }
 
-  renderNotIntegrated(mount, session.body, cart);
-}
+  const dropin = new DropInUI({ checkoutSessionToken });
 
-function renderNotIntegrated(mount, info, cart) {
-  mount.innerHTML = '';
-
-  const notice = el('div', 'notice');
-  notice.append(el('strong', null, 'No payment provider integrated yet'));
-  notice.append(
-    el(
-      'div',
-      null,
-      info?.message ??
-        'POST /api/create-checkout-session is still a stub, so there is no payment form to show.'
-    )
-  );
-  mount.append(notice);
-
-  // Demo-only escape hatch so the storefront has a complete happy path
-  // before any payment provider exists. Integrating one replaces this
-  // with a real payment form.
-  const place = el('button', 'block', 'Place order without payment (demo only)');
-  place.style.marginTop = '1.25rem';
-  place.addEventListener('click', async () => {
-    place.disabled = true;
-    place.textContent = 'Placing order…';
-    const { ok, body } = await api('/api/orders', { method: 'POST' });
-    if (!ok) {
-      place.disabled = false;
-      place.textContent = 'Place order without payment (demo only)';
+  dropin.subscribe((event) => {
+    if (event.message === 'MountSuccess') {
+      mount.querySelector('.empty')?.remove();
       return;
     }
-    location.href = `/confirmation?order=${encodeURIComponent(body.orderNumber)}`;
-  });
-  mount.append(place);
 
-  const caveat = el(
-    'div',
-    'cents-note',
-    `No card is collected and no money moves — this only records an order for ${money(
-      cart.totalCents
-    )}.`
+    if (event.message === 'PaymentSuccess') {
+      // The server re-checks this against JPM's notifications API before
+      // the confirmation page calls the order paid.
+      dropin.unmount?.();
+      location.href = `/confirmation?order=${encodeURIComponent(orderNumber)}`;
+      return;
+    }
+
+    if (event.message === 'PaymentPending') {
+      renderCheckoutNotice(
+        mount,
+        'Payment pending',
+        'This payment method settles asynchronously. The confirmation page will show the final result.'
+      );
+      dropin.unmount?.();
+      setTimeout(() => {
+        location.href = `/confirmation?order=${encodeURIComponent(orderNumber)}`;
+      }, 1500);
+      return;
+    }
+
+    if (event.message === 'PaymentUnsuccessful') {
+      // Recoverable — the form stays mounted so the shopper can retry.
+      renderCheckoutNotice(
+        mount,
+        'Payment declined',
+        'That payment was not approved. You can try a different card.',
+        { prepend: true }
+      );
+      return;
+    }
+
+    if (event.level === 'error') {
+      renderCheckoutNotice(
+        mount,
+        'Payment error',
+        'Something went wrong processing that payment. Please try again.',
+        { prepend: true }
+      );
+    }
+  });
+
+  dropin.mount('payment-container');
+  window.addEventListener('pagehide', () => dropin.unmount?.(), { once: true });
+}
+
+function renderCheckoutNotice(mount, title, detail, { prepend = false } = {}) {
+  mount.querySelector('[data-checkout-notice]')?.remove();
+  const notice = el('div', 'notice');
+  notice.dataset.checkoutNotice = '';
+  notice.append(el('strong', null, title));
+  notice.append(el('div', null, detail));
+  if (prepend) mount.prepend(notice);
+  else mount.append(notice);
+}
+
+function renderCheckoutError(mount, info) {
+  mount.innerHTML = '';
+  renderCheckoutNotice(
+    mount,
+    'Checkout unavailable',
+    info?.message ?? 'The checkout session could not be created. Please try again.'
   );
-  caveat.style.textAlign = 'center';
-  mount.append(caveat);
 }
 
 // ── Confirmation page ───────────────────────────────────────────────
@@ -300,8 +382,8 @@ async function initConfirmation() {
   statusRow.append(el('th', null, 'Payment'), statusCell);
   table.append(statusRow);
 
-  // Second integration seam: server-side verification. Returns 501
-  // until a payment provider is integrated.
+  // Server-side verification against JPM's notifications API. The browser
+  // saying "PaymentSuccess" is never proof on its own.
   const status = await api(
     `/api/payment-status/${encodeURIComponent(order.orderNumber)}`
   );
@@ -313,13 +395,56 @@ async function initConfirmation() {
       el(
         'div',
         null,
-        'This order was recorded without taking payment. Once a payment ' +
-          'provider is integrated, this panel shows the transaction as ' +
-          'confirmed by the server.'
+        status.body?.message ??
+          'The server could not confirm this transaction with J.P. Morgan.'
       )
     );
     verification.append(note);
+    return;
   }
+
+  const payment = status.body;
+
+  if (!payment.settled) {
+    const note = el('div', 'notice');
+    note.append(el('strong', null, 'Awaiting confirmation'));
+    note.append(
+      el(
+        'div',
+        null,
+        'J.P. Morgan has not reported this transaction yet. Notifications ' +
+          'are asynchronous — refresh in a moment.'
+      )
+    );
+    verification.append(note);
+    return;
+  }
+
+  statusCell.firstChild.textContent = 'paid';
+
+  const confirmed = el('div', 'notice');
+  confirmed.append(el('strong', null, 'Payment confirmed by J.P. Morgan'));
+  const details = document.createElement('table');
+  details.className = 'details';
+
+  const paymentRows = [
+    ['Card', [payment.cardType, payment.maskedAccountNumber].filter(Boolean).join(' ')],
+    ['Amount settled', payment.amountCents != null ? money(payment.amountCents) : null],
+    ['Approval code', payment.approvalCode],
+    ['Issuer response', payment.responseMessage],
+    ['Fraud check', payment.fraudCheckStatus],
+    ['Transaction ref', payment.transactionReference],
+  ];
+
+  for (const [label, value] of paymentRows) {
+    if (!value) continue;
+    const tr = document.createElement('tr');
+    tr.append(el('th', null, label), el('td', null, value));
+    details.append(tr);
+  }
+
+  confirmed.append(details);
+  verification.append(confirmed);
 }
 
 // ── Boot ────────────────────────────────────────────────────────────

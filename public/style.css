@@ -376,9 +376,50 @@ button.link:hover {
   margin-bottom: 0.2rem;
 }
 
+/* ── Billing form ────────────────────────────────────────────────── */
+#billing-form label {
+  display: block;
+  margin-bottom: 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+#billing-form input {
+  display: block;
+  width: 100%;
+  margin-top: 0.3rem;
+  padding: 0.6rem 0.7rem;
+  font: inherit;
+  font-weight: 400;
+  color: inherit;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+#billing-form input:focus-visible {
+  outline: 2px solid var(--accent, #1a7a8a);
+  outline-offset: 1px;
+}
+
+#billing-form .field-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 0.6rem;
+}
+
 /* ── Payment form mount point ────────────────────────────────────── */
+#payment-container:empty {
+  min-height: 0;
+}
+
 #payment-container {
   min-height: 200px;
+}
+
+#payment-container .notice {
+  margin-bottom: 1rem;
 }
 
 /* ── Confirmation ────────────────────────────────────────────────── */
