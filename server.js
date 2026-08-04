@@ -28,6 +28,7 @@ import {
   fetchNotifications,
   summarizeNotifications,
 } from './lib/jpmCheckout.js';
+import { describeTargets } from './lib/jpmAuth.js';
 
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
 const PUBLIC_DIR = join(ROOT, 'public');
@@ -333,9 +334,20 @@ const PORT = Number(process.env.PORT) || 3000;
 server.listen(PORT, () => {
   console.log(`  Northwind Goods  →  http://localhost:${PORT}`);
   console.log(`  ${getCatalog().length} products loaded`);
-  console.log(
-    process.env.JPM_MERCHANT_ID
-      ? '  Checkout: J.P. Morgan Drop-in UI'
-      : '  Checkout: JPM env vars missing — see .env.example'
-  );
+  if (!process.env.JPM_MERCHANT_ID) {
+    console.log('  Checkout: JPM env vars missing — see .env.example');
+  } else {
+    const { apiHost, tokenHost, split } = describeTargets();
+    console.log('  Checkout: J.P. Morgan Drop-in UI');
+    console.log(`    api   → ${apiHost}`);
+    console.log(`    auth  → ${tokenHost}`);
+    if (split) {
+      console.log(
+        '    WARNING: auth points at production IDAnywhere while the API points\n' +
+          '             at a mock host. Token exchange runs first, so the mock will\n' +
+          '             never be reached. Set JPM_OAUTH_TOKEN_URL to the mock\'s\n' +
+          '             token endpoint, or use real credentials for both.'
+      );
+    }
+  }
 });
