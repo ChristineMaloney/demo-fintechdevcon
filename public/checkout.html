@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Checkout — Switchback Systems</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Cpath d=%27M16 5 L29 27 L3 27 Z%27 fill=%27%234fd1e0%27/%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <header>
+      <div class="bar">
+        <a class="brand" href="/">
+          <span class="mark">▲</span>
+          <span>
+            Switchback Systems
+            <small>Denver, Colorado · 5,280 ft</small>
+          </span>
+        </a>
+        <nav>
+          <a class="cart-link" href="/cart.html">
+            Cart <span class="cart-count" data-cart-count>0</span>
+          </a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <h1>Checkout</h1>
+      <p class="lede">Billing details, then payment.</p>
+
+      <div class="notice notice-warn">
+        <h2>No payment provider is integrated</h2>
+        <p>
+          The card fields below are disabled because nothing is wired up to
+          charge them. <code>POST /api/payments</code> currently returns
+          <code>501 not_integrated</code>.
+        </p>
+        <p>
+          You can still place the order to see the rest of the flow — it will be
+          recorded <strong>unpaid</strong>, and no card is collected.
+        </p>
+      </div>
+
+      <div class="split">
+        <section>
+          <form data-checkout-form>
+            <fieldset>
+              <legend>Billing</legend>
+
+              <div class="field">
+                <label for="fullName">Full name</label>
+                <input id="fullName" name="fullName" required autocomplete="name" placeholder="Dana Whitfield" />
+              </div>
+
+              <div class="field">
+                <label for="email">Email</label>
+                <input id="email" name="email" type="email" required autocomplete="email" placeholder="dana@example.com" />
+              </div>
+
+              <div class="field">
+                <label for="line1">Street address</label>
+                <input id="line1" name="line1" required autocomplete="address-line1" placeholder="1701 Wynkoop St" />
+              </div>
+
+              <div class="field-row-3">
+                <div class="field">
+                  <label for="city">City</label>
+                  <input id="city" name="city" required autocomplete="address-level2" placeholder="Denver" />
+                </div>
+                <div class="field">
+                  <label for="state">State</label>
+                  <input id="state" name="state" required maxlength="2" autocomplete="address-level1" placeholder="CO" />
+                </div>
+                <div class="field">
+                  <label for="postalCode">ZIP</label>
+                  <input id="postalCode" name="postalCode" required autocomplete="postal-code" placeholder="80202" />
+                </div>
+              </div>
+            </fieldset>
+
+            <!--
+              PAYMENT SEAM (client side).
+
+              Online Payments is a direct server-to-server API, so this
+              storefront owns the card form rather than mounting a hosted
+              widget. The fields are here, disabled, waiting to be enabled
+              and posted to /api/payments.
+            -->
+            <fieldset data-payment-fieldset>
+              <legend>Payment</legend>
+
+              <div class="field">
+                <label for="cardNumber">Card number</label>
+                <input id="cardNumber" name="cardNumber" inputmode="numeric" autocomplete="cc-number" placeholder="4470 0513 0000 0000 003" disabled />
+              </div>
+
+              <div class="field-row-3">
+                <div class="field">
+                  <label for="expMonth">Exp. month</label>
+                  <input id="expMonth" name="expMonth" inputmode="numeric" autocomplete="cc-exp-month" placeholder="05" disabled />
+                </div>
+                <div class="field">
+                  <label for="expYear">Exp. year</label>
+                  <input id="expYear" name="expYear" inputmode="numeric" autocomplete="cc-exp-year" placeholder="2027" disabled />
+                </div>
+                <div class="field">
+                  <label for="cvv">CVV</label>
+                  <input id="cvv" name="cvv" inputmode="numeric" autocomplete="cc-csc" placeholder="411" disabled />
+                </div>
+              </div>
+
+              <p style="color: var(--faint); font-size: 0.82rem; margin: 0">
+                Disabled until a processor is integrated.
+              </p>
+            </fieldset>
+
+            <div data-pay-actions>
+              <button type="button" class="btn-primary" data-pay-btn disabled>
+                Pay <span data-pay-amount>$0.00</span>
+              </button>
+
+              <p style="color: var(--faint); font-size: 0.82rem; margin: 0.65rem 0 1rem; text-align: center">
+                — or —
+              </p>
+
+              <button type="submit" class="btn-warn" data-place-order-btn>
+                Place order without payment (demo only)
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <aside class="panel">
+          <h2>Order summary</h2>
+          <div data-checkout-lines></div>
+          <div class="totals" data-totals></div>
+          <!-- The exact integer is shown because that is what a payment API
+               receives: smallest currency unit, never a float dollar value. -->
+          <div class="cents" data-total-cents></div>
+        </aside>
+      </div>
+    </main>
+
+    <footer>Switchback Systems · demo storefront · orders are not fulfilled</footer>
+
+    <div class="toast" data-toast></div>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

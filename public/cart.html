@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Cart — Switchback Systems</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Cpath d=%27M16 5 L29 27 L3 27 Z%27 fill=%27%234fd1e0%27/%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <header>
+      <div class="bar">
+        <a class="brand" href="/">
+          <span class="mark">▲</span>
+          <span>
+            Switchback Systems
+            <small>Denver, Colorado · 5,280 ft</small>
+          </span>
+        </a>
+        <nav>
+          <a class="cart-link" href="/cart.html">
+            Cart <span class="cart-count" data-cart-count>0</span>
+          </a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <h1>Your cart</h1>
+      <p class="lede">
+        Free shipping over <span data-free-shipping>$75.00</span>. Tax shown at
+        Denver's combined rate.
+      </p>
+
+      <div class="split">
+        <section class="panel" data-cart-lines>
+          <p class="empty">Loading…</p>
+        </section>
+
+        <aside class="panel" data-cart-summary hidden>
+          <h2>Summary</h2>
+          <div class="totals" data-totals></div>
+          <div style="margin-top: 1.1rem">
+            <a href="/checkout.html"
+              ><button class="btn-primary">Checkout</button></a
+            >
+          </div>
+          <div style="margin-top: 0.5rem">
+            <a href="/"><button class="btn-ghost" style="width: 100%">Keep shopping</button></a>
+          </div>
+        </aside>
+      </div>
+    </main>
+
+    <footer>Switchback Systems · demo storefront · orders are not fulfilled</footer>
+
+    <div class="toast" data-toast></div>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

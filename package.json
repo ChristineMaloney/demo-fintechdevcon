@@ -1,0 +1,14 @@
+{
+  "name": "switchback-systems",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Switchback Systems — a Denver hardware storefront with no payment provider integrated.",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  }
+}

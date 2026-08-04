@@ -1,0 +1,44 @@
+[
+  {
+    "sku": "BLB-1001",
+    "name": "Bluebird 27\" 4K Display",
+    "tagline": "Matte IPS panel tuned for bluebird-day glare",
+    "priceCents": 54900,
+    "art": "🖥️"
+  },
+  {
+    "sku": "QND-2002",
+    "name": "Quandary ANC Headphones",
+    "tagline": "Active noise cancelling, 40-hour battery",
+    "priceCents": 24999,
+    "art": "🎧"
+  },
+  {
+    "sku": "PKS-3003",
+    "name": "Pikes Peak Mechanical Keyboard",
+    "tagline": "Hot-swappable switches, anodised aluminium deck",
+    "priceCents": 17900,
+    "art": "⌨️"
+  },
+  {
+    "sku": "CHK-4004",
+    "name": "Chinook Thunderbolt Dock",
+    "tagline": "Two 4K outputs, 96W passthrough, one cable",
+    "priceCents": 18900,
+    "art": "🔌"
+  },
+  {
+    "sku": "TMB-5005",
+    "name": "Timberline 28L Tech Pack",
+    "tagline": "Recycled ripstop, 16\" laptop sleeve, ice axe loop",
+    "priceCents": 12850,
+    "art": "🎒"
+  },
+  {
+    "sku": "LNG-6006",
+    "name": "Longs Peak 20K Power Bank",
+    "tagline": "Holds charge at altitude and below freezing",
+    "priceCents": 6900,
+    "art": "🔋"
+  }
+]
