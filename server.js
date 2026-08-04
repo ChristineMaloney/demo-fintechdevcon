@@ -29,6 +29,7 @@ import {
   summarizeNotifications,
   describeCheckoutTarget,
   dropInUiUrl,
+  frontendServiceOrigin,
 } from './lib/jpmCheckout.js';
 
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
@@ -228,7 +229,12 @@ async function handleApi(req, res, url) {
   // hardcoded in the page so switching environments stays a .env change.
   if (pathname === '/api/checkout-config' && method === 'GET') {
     const { apiHost, mock } = describeCheckoutTarget();
-    return json(res, 200, { dropInUiUrl: dropInUiUrl(), apiHost, mock });
+    return json(res, 200, {
+      dropInUiUrl: dropInUiUrl(),
+      apiHost,
+      mock,
+      frontendServiceOrigin: frontendServiceOrigin(),
+    });
   }
 
   // Snapshot the cart into an order, then trade that order for a

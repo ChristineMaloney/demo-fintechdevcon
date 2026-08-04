@@ -231,6 +231,47 @@ async function initCheckout() {
   });
 }
 
+// The Drop-in bundle is built per environment with its backend baked in,
+// so the CAT build calls api.checkout-cat.merchant.jpmorgan.com even when
+// this server created the session against the mock — and the mock is not
+// the one holding that session. Its frontend-service calls are recognisable
+// by their path (`/checkout.fe.v1.<Service>/<Method>`), so they can be
+// redirected by origin without caring which host the bundle was built for.
+const FRONTEND_SERVICE_PATH = /^\/checkout\.fe\./;
+
+function redirectFrontendService(origin) {
+  const retarget = (rawUrl) => {
+    try {
+      const url = new URL(rawUrl, location.href);
+      if (!FRONTEND_SERVICE_PATH.test(url.pathname)) return rawUrl;
+      const target = new URL(origin);
+      url.protocol = target.protocol;
+      url.host = target.host;
+      return url.toString();
+    } catch {
+      return rawUrl;
+    }
+  };
+
+  const nativeFetch = window.fetch;
+  window.fetch = function (input, init) {
+    if (typeof input === 'string' || input instanceof URL) {
+      return nativeFetch.call(this, retarget(String(input)), init);
+    }
+    if (input instanceof Request) {
+      const moved = retarget(input.url);
+      if (moved !== input.url) return nativeFetch.call(this, new Request(moved, input), init);
+    }
+    return nativeFetch.call(this, input, init);
+  };
+
+  // The bundle may use XHR rather than fetch; cover both.
+  const nativeOpen = XMLHttpRequest.prototype.open;
+  XMLHttpRequest.prototype.open = function (method, url, ...rest) {
+    return nativeOpen.call(this, method, retarget(String(url)), ...rest);
+  };
+}
+
 /**
  * Loads the Drop-in bundle from the URL the server reports, then waits for
  * it to register the global `DropInUI` class. The bundle is injected here
@@ -242,6 +283,11 @@ async function whenDropInReady(timeoutMs = 10000) {
   const { body: config } = await api('/api/checkout-config');
   if (!config.dropInUiUrl) {
     throw new Error('The server did not report a Drop-in UI bundle URL.');
+  }
+
+  // Must be installed before the bundle loads and issues its first call.
+  if (config.frontendServiceOrigin) {
+    redirectFrontendService(config.frontendServiceOrigin);
   }
 
   if (!document.querySelector(`script[src="${config.dropInUiUrl}"]`)) {
