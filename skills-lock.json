@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "skills": {
+    "jpm-integrations-get-started": {
+      "source": "jpmorgan-payments/pdp-skills",
+      "sourceType": "github",
+      "skillPath": "skills/jpm-integrations-get-started/SKILL.md",
+      "computedHash": "f6b4b87ce92b47f127dbb1416afe775b601d933dcc671df1b8ddbcad5386c4c7"
+    },
+    "jpm-merchant-integrations": {
+      "source": "jpmorgan-payments/pdp-skills",
+      "sourceType": "github",
+      "skillPath": "skills/jpm-merchant-integrations/SKILL.md",
+      "computedHash": "ffe056436fe9705e298880eb1e43bea7c125d3e394d08a76e407d7e2ec627043"
+    },
+    "jpm-oauth": {
+      "source": "jpmorgan-payments/pdp-skills",
+      "sourceType": "github",
+      "skillPath": "skills/jpm-oauth/SKILL.md",
+      "computedHash": "565d49ec5e46714f3cfa7062520e045ca4eb4eb43edf38c7ea2046ebb94abb2b"
+    }
+  }
+}
