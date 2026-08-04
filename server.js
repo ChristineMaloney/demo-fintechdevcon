@@ -1,10 +1,10 @@
 // Switchback Systems — HTTP server.
 //
-// Zero dependencies: Node 18+ standard library only. No build step, no
-// `npm install`. Start it with `node server.js`.
+// Node 18+ standard library, plus `jsonwebtoken` for signing the J.P. Morgan
+// auth assertion. Run `npm install` once, then start it with `node server.js`.
 //
-// The catalog, cart and order flow all work. Taking money does not — the
-// payment endpoints below are stubs that return 501. See README.md.
+// The catalog, cart and order flow all work, and taking money now works too:
+// card payments go through J.P. Morgan's Online Payments API. See README.md.
 
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
@@ -21,7 +21,18 @@ import {
   summarise,
   createOrder,
   getOrder,
+  markPaid,
+  markRefunded,
 } from './lib/store.js';
+
+import {
+  authorizeAndCapture,
+  retrievePayment,
+  refundPayment,
+  isSettled,
+  isConfigured as paymentsConfigured,
+  JpmPaymentError,
+} from './lib/jpmPayments.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = join(here, 'public');
@@ -248,80 +259,135 @@ const server = createServer(async (req, res) => {
     }
 
     // ═════════════════════════════════════════════════════════════════
-    // INTEGRATION SEAM — J.P. Morgan Online Payments API
+    // J.P. Morgan Online Payments API
     //
-    // The endpoints below are the whole gap. Everything else in this
-    // application is finished. The client already calls all of them.
+    // Direct server-to-server integration. The storefront collects the card
+    // on its own form (public/checkout.html) and posts it here; the card
+    // never travels anywhere but from this process to JPM. Tokens come from
+    // lib/jpmAuth.js, which caches them — nothing below mints its own.
     // ═════════════════════════════════════════════════════════════════
 
-    // Capability flag. Not a stub — it reports the truth about the current
-    // state, and the checkout page branches on it: false disables the card
-    // form and shows the "not integrated" notice, true enables both.
-    // An integration flips this to true once /api/payments can charge.
+    // Capability flag. Reports the truth about the current state, and the
+    // checkout page branches on it: false disables the card form and shows
+    // the "not integrated" notice, true enables both. It goes true only when
+    // the env actually carries enough to reach JPM, so a half-filled .env
+    // presents as unintegrated rather than failing at the Pay button.
     if (pathname === '/api/payment-capabilities' && method === 'GET') {
+      const ready = paymentsConfigured();
       return sendJson(res, 200, {
-        integrated: false,
-        provider: null,
-        methods: [],
+        integrated: ready,
+        provider: ready ? 'jpmorgan-online-payments' : null,
+        methods: ready ? ['card'] : [],
       });
     }
 
-    // SEAM 1 — Authorize and capture a card payment.
-    //
-    // Online Payments is a direct, server-to-server API: this storefront
-    // collects the card on its own form (see public/checkout.html) and
-    // posts it here. There is no hosted widget to mount.
-    //
-    // Should POST to {JPM_PAYMENTS_API_URL}/payments with a bearer token
-    // from the auth module, sending amount (integer cents), currency,
-    // merchantOrderNumber (the existing 22-char order.orderNumber),
-    // paymentMethodType.card and accountHolder.billingAddress — then
-    // record the returned transactionId against the order.
+    // Authorize and capture a card payment, in one step (captureMethod NOW).
     if (pathname === '/api/payments' && method === 'POST') {
-      return sendJson(res, 501, {
-        error: 'not_integrated',
-        message:
-          'No payment provider is integrated, so this card cannot be charged. ' +
-          'This endpoint should authorize and capture the payment ' +
-          'server-side and return the resulting transaction id.',
-        expectedResponse: {
-          transactionId: '<processor transaction id>',
-          paymentStatus: 'paid',
-          orderNumber: '<=22 chars',
-        },
+      const { orderNumber, card } = await readBody(req);
+
+      const order = getOrder(String(orderNumber ?? ''));
+      if (!order) return sendJson(res, 404, { error: 'Unknown order' });
+      if (order.paymentStatus === 'paid') {
+        // Re-posting the same order must not charge the card twice.
+        return sendJson(res, 200, {
+          transactionId: order.transactionId,
+          paymentStatus: order.paymentStatus,
+          orderNumber: order.orderNumber,
+        });
+      }
+      if (!card?.accountNumber || !card?.expiry || !card?.cvv) {
+        return sendJson(res, 400, { error: 'Card details are incomplete' });
+      }
+
+      const payment = await authorizeAndCapture(order, card);
+
+      const transactionId = payment.transactionId;
+      if (!transactionId || !isSettled(payment)) {
+        // JPM answered without a clean capture — a decline, a soft decline,
+        // or a status this storefront does not treat as settled. The order
+        // stays unpaid; only a positive capture moves it.
+        return sendJson(res, 402, {
+          error: 'payment_declined',
+          message: 'The payment was not captured.',
+          transactionStatus: payment.transactionStatus ?? null,
+          responseMessage: payment.responseStatus ?? null,
+          orderNumber: order.orderNumber,
+        });
+      }
+
+      markPaid(order.orderNumber, transactionId);
+      return sendJson(res, 200, {
+        transactionId,
+        paymentStatus: 'paid',
+        orderNumber: order.orderNumber,
       });
     }
 
-    // SEAM 2 — Confirm settlement server-side.
-    //
-    // The browser reporting success is not evidence a payment settled.
-    // Should read the transaction back from the processor and return the
-    // authoritative status.
+    // Confirm settlement server-side. The browser reporting success is not
+    // evidence a payment settled — this reads the transaction back from JPM.
     if (pathname.startsWith('/api/payment-status/') && method === 'GET') {
       const orderNumber = pathname.slice('/api/payment-status/'.length);
-      return sendJson(res, 501, {
-        error: 'not_integrated',
-        message:
-          'No payment provider is integrated, so payment cannot be verified ' +
-          'server-side. This endpoint should confirm the transaction settled ' +
-          'rather than trusting anything the browser reports.',
+
+      const order = getOrder(orderNumber);
+      if (!order) return sendJson(res, 404, { error: 'Unknown order' });
+      if (!order.transactionId) {
+        return sendJson(res, 409, {
+          error: 'not_paid',
+          message: 'This order has no transaction to verify.',
+          orderNumber,
+        });
+      }
+
+      const payment = await retrievePayment(order.transactionId);
+      const settled = isSettled(payment);
+      if (!settled) {
+        return sendJson(res, 409, {
+          error: 'not_settled',
+          message: `The processor reports this transaction as ${
+            payment.transactionStatus ?? 'unsettled'
+          }.`,
+          orderNumber,
+        });
+      }
+
+      return sendJson(res, 200, {
         orderNumber,
+        transactionId: order.transactionId,
+        transactionStatus: payment.transactionStatus ?? null,
+        amount: payment.amount ?? null,
+        currency: payment.currency ?? null,
       });
     }
 
-    // SEAM 3 — Refund a captured payment.
-    //
-    // Included because the payment lifecycle does not end at capture, and
+    // Refund a captured payment. The lifecycle does not end at capture, and
     // a storefront that can only take money is only half integrated.
     if (/^\/api\/orders\/[^/]+\/refund$/.test(pathname) && method === 'POST') {
       const orderNumber = pathname.split('/')[3];
-      return sendJson(res, 501, {
-        error: 'not_integrated',
-        message:
-          'No payment provider is integrated, so there is nothing to refund. ' +
-          'This endpoint should issue a refund against the stored ' +
-          'transaction id and record the result.',
+      const { amountCents } = await readBody(req).catch(() => ({}));
+
+      const order = getOrder(orderNumber);
+      if (!order) return sendJson(res, 404, { error: 'Unknown order' });
+      if (!order.transactionId) {
+        return sendJson(res, 409, {
+          error: 'not_paid',
+          message: 'This order was never captured, so there is nothing to refund.',
+          orderNumber,
+        });
+      }
+
+      // Omitting amountCents refunds the full original amount.
+      const refund = await refundPayment(
+        order.transactionId,
+        order.currencyCode,
+        amountCents === undefined ? undefined : Number(amountCents),
+      );
+
+      markRefunded(order.orderNumber, refund.transactionId ?? null);
+      return sendJson(res, 200, {
         orderNumber,
+        refundTransactionId: refund.transactionId ?? null,
+        transactionStatus: refund.transactionStatus ?? null,
+        paymentStatus: 'refunded',
       });
     }
 
@@ -332,6 +398,15 @@ const server = createServer(async (req, res) => {
 
     return sendJson(res, 405, { error: 'Method not allowed' });
   } catch (err) {
+    // A processor failure is not the shopper sending a bad request. Keep the
+    // detail in the log and hand the browser something it can act on.
+    if (err instanceof JpmPaymentError) {
+      console.error(err.message, err.body);
+      return sendJson(res, err.status >= 500 ? 502 : 400, {
+        error: 'payment_error',
+        message: 'The payment could not be processed.',
+      });
+    }
     return sendJson(res, 400, { error: err.message ?? 'Bad request' });
   }
 });
@@ -339,5 +414,9 @@ const server = createServer(async (req, res) => {
 server.listen(PORT, () => {
   console.log(`  Switchback Systems  →  http://localhost:${PORT}`);
   console.log(`  ${listProducts().length} products loaded`);
-  console.log('  Payments: not integrated (POST /api/payments returns 501)');
+  console.log(
+    paymentsConfigured()
+      ? '  Payments: J.P. Morgan Online Payments (card)'
+      : '  Payments: JPM code is wired up, but the JPM_* env vars are incomplete',
+  );
 });
