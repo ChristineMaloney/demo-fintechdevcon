@@ -334,12 +334,15 @@ const PORT = Number(process.env.PORT) || 3000;
 server.listen(PORT, () => {
   console.log(`  Northwind Goods  →  http://localhost:${PORT}`);
   console.log(`  ${getCatalog().length} products loaded`);
-  if (!process.env.JPM_MERCHANT_ID) {
-    console.log('  Checkout: JPM env vars missing — see .env.example');
+  const { apiHost, authHost, mock } = describeCheckoutTarget();
+  if (!mock && !process.env.JPM_MERCHANT_ID) {
+    console.log('  Checkout: JPM_MERCHANT_ID not set — see .env.example');
   } else {
-    const { apiHost, authHost } = describeCheckoutTarget();
     console.log('  Checkout: J.P. Morgan Drop-in UI');
     console.log(`    api   → ${apiHost}`);
     console.log(`    auth  → ${authHost ?? 'none (mock takes no credentials)'}`);
+    if (mock && !process.env.JPM_MERCHANT_ID) {
+      console.log('    note  → using JPM sample merchantId (mock only)');
+    }
   }
 });
