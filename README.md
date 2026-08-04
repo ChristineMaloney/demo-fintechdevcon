@@ -18,6 +18,22 @@ Card payments need credentials. Copy `.env.example` to `.env` and fill in the
 unintegrated and checkout falls back to the demo bypass, exactly as it did
 before the integration. `.env` is gitignored; never commit it.
 
+### Running against the mock endpoint
+
+To exercise the flow without credentials, point `.env` at JPM's mock host and
+turn off auth:
+
+```
+JPM_BYPASS_AUTH=true
+JPM_PAYMENTS_API_URL=https://api-mock.payments.jpmorgan.com/api/v2
+```
+
+No JWT is signed and no token is fetched — requests go out unauthenticated and
+the mock returns canned responses. The other `JPM_*` values are unread in this
+mode and can stay as placeholders. CAT and PROD both reject unauthenticated
+requests, so set `JPM_BYPASS_AUTH=false` before pointing at either; the
+credentials become required again at that point.
+
 ## What works today
 
 | Area | Status |
